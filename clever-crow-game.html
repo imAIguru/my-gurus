@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clever Crow - Modern Puzzle Game</title>
+    <title>Clever Crow - Adventure Game</title>
     <style>
         * {
             margin: 0;
@@ -13,569 +13,1125 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
             overflow: hidden;
         }
 
-        .game-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 30px;
-            max-width: 800px;
-            width: 95%;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            color: #2d3748;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            color: white;
-            font-weight: bold;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5em;
+        #game-canvas {
+            width: 100%;
+            height: 100%;
             display: block;
         }
 
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 5px;
-            background: #2d3748;
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
         }
 
-        .cell {
-            aspect-ratio: 1;
-            background: #4a5568;
-            border-radius: 8px;
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hud-icon {
+            font-size: 24px;
+        }
+
+        #start-screen, #level-complete, #game-over, #victory-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 1.8em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
+            pointer-events: auto;
+            z-index: 20;
+            color: white;
         }
 
-        .cell:hover {
-            transform: scale(1.05);
-            background: #718096;
-        }
-
-        .cell.crow {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            animation: pulse 2s infinite;
-        }
-
-        .cell.food {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            animation: bounce 1s infinite;
-        }
-
-        .cell.obstacle {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .cell.goal {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            animation: glow 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
+        .screen-title {
+            font-size: 64px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
         }
 
         @keyframes glow {
-            0%, 100% { box-shadow: 0 0 10px #43e97b; }
-            50% { box-shadow: 0 0 20px #43e97b, 0 0 30px #43e97b; }
+            from { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+            to { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.6); }
         }
 
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 300px;
-            margin: 0 auto 20px;
+        .screen-subtitle {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
         }
 
-        .control-btn {
+        .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.5em;
+            padding: 18px 50px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            margin: 10px;
+            pointer-events: auto;
         }
 
-        .control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
         }
 
-        .control-btn:active {
+        .btn:active {
             transform: translateY(0);
         }
 
-        .action-buttons {
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        #level-indicator {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 10px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        #task-description {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            max-width: 80%;
+            pointer-events: none;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Mobile controls */
+        #mobile-controls {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 40px;
+            pointer-events: auto;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+            
+            .screen-title {
+                font-size: 42px;
+            }
+            
+            .screen-subtitle {
+                font-size: 18px;
+                padding: 0 20px;
+            }
+            
+            .btn {
+                padding: 15px 40px;
+                font-size: 18px;
+            }
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+
+        .control-group {
             display: flex;
             gap: 15px;
-            justify-content: center;
-            margin-bottom: 20px;
         }
 
-        .action-btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* Progress bar */
+        #progress-container {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Floating text animations */
+        .floating-text {
+            position: absolute;
+            color: #ffd700;
             font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
         }
 
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .message {
-            text-align: center;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            font-size: 1.2em;
-            display: none;
-        }
-
-        .message.success {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
-            display: block;
-        }
-
-        .message.error {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            display: block;
-        }
-
-        .instructions {
-            background: #f7fafc;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-        }
-
-        .instructions h3 {
-            color: #2d3748;
-            margin-bottom: 10px;
-        }
-
-        .instructions ul {
-            color: #4a5568;
-            line-height: 1.6;
-            padding-left: 20px;
-        }
-
-        .level-selector {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .level-btn {
-            background: #4a5568;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .level-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .level-btn:hover {
-            background: #718096;
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.2);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="header">
-            <h1>🐦 Clever Crow</h1>
-        </div>
-
-        <div class="stats">
-            <div class="stat-item">
-                <span class="stat-value" id="score">0</span>
-                Score
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="hud" class="hidden">
+                <div class="hud-panel">
+                    <div class="hud-item">
+                        <span class="hud-icon">🍎</span>
+                        <span id="score-display">Score: 0</span>
+                    </div>
+                </div>
+                <div class="hud-panel">
+                    <div class="hud-item">
+                        <span class="hud-icon">❤️</span>
+                        <span id="lives-display">Lives: 3</span>
+                    </div>
+                </div>
+                <div class="hud-panel">
+                    <div class="hud-item">
+                        <span class="hud-icon">⭐</span>
+                        <span id="level-display">Level: 1</span>
+                    </div>
+                </div>
             </div>
-            <div class="stat-item">
-                <span class="stat-value" id="moves">0</span>
-                Moves
+
+            <div id="level-indicator" class="hidden"></div>
+            
+            <div id="progress-container" class="hidden">
+                <div id="progress-bar"></div>
             </div>
-            <div class="stat-item">
-                <span class="stat-value" id="level">1</span>
-                Level
+
+            <div id="task-description" class="hidden"></div>
+
+            <div id="controls-hint" class="hidden">
+                Use Arrow Keys or WASD to move • Space to interact • Collect items & avoid obstacles!
+            </div>
+
+            <div id="mobile-controls">
+                <div class="control-group">
+                    <div class="control-btn" id="btn-left">⬅️</div>
+                    <div class="control-btn" id="btn-right">➡️</div>
+                </div>
+                <div class="control-group">
+                    <div class="control-btn" id="btn-up">⬆️</div>
+                    <div class="control-btn" id="btn-down">⬇️</div>
+                </div>
             </div>
         </div>
 
-        <div class="level-selector" id="levelSelector"></div>
-
-        <div class="message" id="message"></div>
-
-        <div class="game-board" id="gameBoard"></div>
-
-        <div class="controls">
-            <button class="control-btn" onclick="moveCrow('up')">⬆️</button>
-            <button class="control-btn" onclick="moveCrow('left')">⬅️</button>
-            <button class="control-btn" onclick="moveCrow('right')">➡️</button>
-            <button class="control-btn" onclick="moveCrow('down')">⬇️</button>
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1 class="screen-title">🐦 Clever Crow</h1>
+            <p class="screen-subtitle">
+                Embark on an epic adventure across different worlds! 
+                Complete unique tasks in the Jungle, City, Village, Mountains, and Space!
+                Collect items, avoid obstacles, and prove you're the cleverest crow!
+            </p>
+            <button class="btn" id="start-btn">Start Adventure</button>
         </div>
 
-        <div class="action-buttons">
-            <button class="action-btn" onclick="resetLevel()">🔄 Reset Level</button>
-            <button class="action-btn" onclick="nextLevel()">➡️ Next Level</button>
+        <!-- Level Complete Screen -->
+        <div id="level-complete" class="hidden">
+            <h1 class="screen-title">🎉 Level Complete!</h1>
+            <p class="screen-subtitle" id="level-complete-msg">Great job! Ready for the next challenge?</p>
+            <button class="btn" id="next-level-btn">Next Level</button>
         </div>
 
-        <div class="instructions">
-            <h3>How to Play:</h3>
-            <ul>
-                <li>🐦 You are the clever crow (purple)</li>
-                <li>🍎 Collect all food items (pink/red)</li>
-                <li>🚧 Avoid obstacles (blue)</li>
-                <li>⭐ Reach the goal (green) to complete the level</li>
-                <li>Use arrow buttons or keyboard arrows to move</li>
-                <li>Complete all levels to win the game!</li>
-            </ul>
+        <!-- Game Over Screen -->
+        <div id="game-over" class="hidden">
+            <h1 class="screen-title">💀 Game Over</h1>
+            <p class="screen-subtitle" id="game-over-msg">Don't give up! Try again!</p>
+            <button class="btn btn-secondary" id="retry-btn">Try Again</button>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victory-screen" class="hidden">
+            <h1 class="screen-title">🏆 Victory!</h1>
+            <p class="screen-subtitle">
+                Congratulations! You've completed all levels and proven yourself as the Cleverest Crow!
+                Final Score: <span id="final-score">0</span>
+            </p>
+            <button class="btn" id="play-again-btn">Play Again</button>
         </div>
     </div>
 
     <script>
-        const levels = [
+        // Game Configuration
+        const CONFIG = {
+            canvasWidth: window.innerWidth,
+            canvasHeight: window.innerHeight,
+            crowSpeed: 6,
+            crowSize: 50,
+            itemSize: 40,
+            obstacleSize: 50,
+            gravity: 0.5,
+            jumpForce: -12
+        };
+
+        // Level Definitions
+        const LEVELS = [
             {
-                name: "First Flight",
-                grid: [
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
-                    ['.', '.', '.', 'F', '.', '.', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.']
-                ]
+                name: "Jungle Adventure",
+                background: {
+                    type: "gradient",
+                    colors: ["#2d5016", "#4a7c23", "#6b9b3a"],
+                    elements: ["trees", "vines", "flowers"]
+                },
+                task: "Collect 10 tropical fruits while avoiding snakes!",
+                objective: "collect",
+                targetCount: 10,
+                itemType: "🥭",
+                obstacleType: "🐍",
+                crowEmoji: "🐦",
+                timeLimit: 60,
+                platformCount: 8
             },
             {
-                name: "Obstacle Course",
-                grid: [
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', 'C', '.', 'X', '.', '.', '.', '.'],
-                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
-                    ['.', '.', '.', 'X', '.', 'F', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.'],
-                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.']
-                ]
+                name: "City Rush",
+                background: {
+                    type: "gradient",
+                    colors: ["#1a1a2e", "#16213e", "#0f3460"],
+                    elements: ["buildings", "cars", "streetlights"]
+                },
+                task: "Gather 15 food scraps from the city streets!",
+                objective: "collect",
+                targetCount: 15,
+                itemType: "🍕",
+                obstacleType: "🚗",
+                crowEmoji: "🐦",
+                timeLimit: 75,
+                platformCount: 10
             },
             {
-                name: "Food Hunt",
-                grid: [
-                    ['.', '.', 'F', '.', '.', 'F', '.', '.'],
-                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
-                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
-                    ['F', '.', '.', 'X', '.', '.', 'F', '.'],
-                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
-                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
-                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
-                    ['.', '.', '.', '.', '.', '.', '.', '.']
-                ]
+                name: "Village Harvest",
+                background: {
+                    type: "gradient",
+                    colors: ["#8b4513", "#cd853f", "#deb887"],
+                    elements: ["houses", "fields", "fences"]
+                },
+                task: "Help the villagers by collecting 20 grains!",
+                objective: "collect",
+                targetCount: 20,
+                itemType: "🌾",
+                obstacleType: "🚜",
+                crowEmoji: "🐦",
+                timeLimit: 90,
+                platformCount: 12
             },
             {
-                name: "Maze Runner",
-                grid: [
-                    ['.', 'X', '.', '.', '.', 'X', '.', '.'],
-                    ['.', 'X', '.', 'X', '.', 'X', '.', '.'],
-                    ['.', 'C', '.', 'X', '.', '.', '.', '.'],
-                    ['.', '.', '.', 'X', 'X', 'X', 'X', '.'],
-                    ['X', 'X', 'X', '.', '.', '.', 'X', '.'],
-                    ['.', '.', '.', '.', 'X', '.', 'X', '.'],
-                    ['.', 'X', 'X', 'X', 'X', '.', 'G', '.'],
-                    ['.', '.', 'F', '.', '.', '.', '.', '.']
-                ]
+                name: "Mountain Quest",
+                background: {
+                    type: "gradient",
+                    colors: ["#2c3e50", "#34495e", "#5d6d7e"],
+                    elements: ["mountains", "clouds", "rocks"]
+                },
+                task: "Navigate the peaks and collect 25 rare gems!",
+                objective: "collect",
+                targetCount: 25,
+                itemType: "💎",
+                obstacleType: "🦅",
+                crowEmoji: "🐦",
+                timeLimit: 100,
+                platformCount: 15
             },
             {
-                name: "Final Challenge",
-                grid: [
-                    ['.', '.', 'F', '.', '.', '.', 'F', '.'],
-                    ['X', 'X', 'X', '.', 'X', 'X', 'X', '.'],
-                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
-                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
-                    ['.', '.', '.', '.', '.', 'X', '.', 'F'],
-                    ['X', 'X', '.', 'X', '.', 'X', 'X', 'X'],
-                    ['F', '.', '.', 'X', '.', '.', '.', 'G'],
-                    ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']
-                ]
+                name: "Space Odyssey",
+                background: {
+                    type: "space",
+                    colors: ["#000000", "#1a0033", "#330066"],
+                    elements: ["stars", "planets", "asteroids"]
+                },
+                task: "Explore the cosmos and gather 30 stardust particles!",
+                objective: "collect",
+                targetCount: 30,
+                itemType: "⭐",
+                obstacleType: "☄️",
+                crowEmoji: "🐦‍⬛",
+                timeLimit: 120,
+                platformCount: 18
             }
         ];
 
-        let currentLevel = 0;
-        let gameState = [];
-        let crowPosition = { row: 0, col: 0 };
-        let score = 0;
-        let moves = 0;
-        let foodCollected = 0;
-        let totalFood = 0;
+        // Game State
+        let gameState = {
+            currentLevel: 0,
+            score: 0,
+            lives: 3,
+            collected: 0,
+            isPlaying: false,
+            isPaused: false,
+            gameTime: 0,
+            crow: {
+                x: 100,
+                y: 300,
+                vx: 0,
+                vy: 0,
+                width: CONFIG.crowSize,
+                height: CONFIG.crowSize,
+                isJumping: false,
+                direction: 1
+            },
+            items: [],
+            obstacles: [],
+            platforms: [],
+            particles: [],
+            keys: {},
+            lastTime: 0
+        };
 
-        function initGame() {
-            loadLevel(currentLevel);
-            createLevelButtons();
-            setupKeyboardControls();
+        // Canvas Setup
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            CONFIG.canvasWidth = canvas.width;
+            CONFIG.canvasHeight = canvas.height;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Input Handling
+        document.addEventListener('keydown', (e) => {
+            gameState.keys[e.code] = true;
+            if (e.code === 'Space' && gameState.isPlaying) {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.keys[e.code] = false;
+        });
+
+        // Mobile Controls
+        const mobileControls = {
+            'btn-left': 'ArrowLeft',
+            'btn-right': 'ArrowRight',
+            'btn-up': 'ArrowUp',
+            'btn-down': 'ArrowDown'
+        };
+
+        Object.entries(mobileControls).forEach(([btnId, keyCode]) => {
+            const btn = document.getElementById(btnId);
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                gameState.keys[keyCode] = true;
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                gameState.keys[keyCode] = false;
+            });
+            
+            btn.addEventListener('mousedown', () => {
+                gameState.keys[keyCode] = true;
+            });
+            
+            btn.addEventListener('mouseup', () => {
+                gameState.keys[keyCode] = false;
+            });
+        });
+
+        // Jump Function
+        function jump() {
+            if (!gameState.crow.isJumping) {
+                gameState.crow.vy = CONFIG.jumpForce;
+                gameState.crow.isJumping = true;
+                createParticles(gameState.crow.x, gameState.crow.y + gameState.crow.height, 5, '#fff');
+            }
         }
 
-        function createLevelButtons() {
-            const container = document.getElementById('levelSelector');
-            container.innerHTML = '';
+        // Particle System
+        function createParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                gameState.particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    life: 1,
+                    color: color,
+                    size: Math.random() * 5 + 2
+                });
+            }
+        }
+
+        // Initialize Level
+        function initLevel(levelIndex) {
+            const level = LEVELS[levelIndex];
             
-            levels.forEach((level, index) => {
-                const btn = document.createElement('button');
-                btn.className = `level-btn ${index === currentLevel ? 'active' : ''}`;
-                btn.textContent = `Level ${index + 1}`;
-                btn.onclick = () => loadLevel(index);
-                container.appendChild(btn);
+            gameState.crow = {
+                x: 100,
+                y: CONFIG.canvasHeight / 2,
+                vx: 0,
+                vy: 0,
+                width: CONFIG.crowSize,
+                height: CONFIG.crowSize,
+                isJumping: false,
+                direction: 1
+            };
+            
+            gameState.items = [];
+            gameState.obstacles = [];
+            gameState.platforms = [];
+            gameState.particles = [];
+            gameState.collected = 0;
+            gameState.gameTime = level.timeLimit;
+            
+            // Create platforms
+            for (let i = 0; i < level.platformCount; i++) {
+                const platform = {
+                    x: Math.random() * (CONFIG.canvasWidth - 200) + 100,
+                    y: Math.random() * (CONFIG.canvasHeight - 200) + 150,
+                    width: Math.random() * 150 + 100,
+                    height: 20
+                };
+                gameState.platforms.push(platform);
+            }
+            
+            // Add ground platform
+            gameState.platforms.push({
+                x: 0,
+                y: CONFIG.canvasHeight - 50,
+                width: CONFIG.canvasWidth,
+                height: 50
+            });
+            
+            // Create items
+            for (let i = 0; i < level.targetCount + 5; i++) {
+                spawnItem(level);
+            }
+            
+            // Create obstacles
+            for (let i = 0; i < 8 + levelIndex * 2; i++) {
+                spawnObstacle(level);
+            }
+            
+            updateUI();
+        }
+
+        function spawnItem(level) {
+            gameState.items.push({
+                x: Math.random() * (CONFIG.canvasWidth - 100) + 50,
+                y: Math.random() * (CONFIG.canvasHeight - 200) + 100,
+                width: CONFIG.itemSize,
+                height: CONFIG.itemSize,
+                type: level.itemType,
+                collected: false,
+                floatOffset: Math.random() * Math.PI * 2
             });
         }
 
-        function loadLevel(levelIndex) {
-            currentLevel = levelIndex;
-            const level = levels[levelIndex];
+        function spawnObstacle(level) {
+            const obstacle = {
+                x: Math.random() * CONFIG.canvasWidth,
+                y: Math.random() * (CONFIG.canvasHeight - 200) + 100,
+                width: CONFIG.obstacleSize,
+                height: CONFIG.obstacleSize,
+                type: level.obstacleType,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 4
+            };
             
-            // Deep copy the grid
-            gameState = level.grid.map(row => [...row]);
-            
-            // Find crow position and count food
-            foodCollected = 0;
-            totalFood = 0;
-            
-            for (let row = 0; row < gameState.length; row++) {
-                for (let col = 0; col < gameState[row].length; col++) {
-                    if (gameState[row][col] === 'C') {
-                        crowPosition = { row, col };
-                    } else if (gameState[row][col] === 'F') {
-                        totalFood++;
-                    }
-                }
+            // Ensure obstacle doesn't spawn too close to crow
+            const dist = Math.hypot(obstacle.x - gameState.crow.x, obstacle.y - gameState.crow.y);
+            if (dist < 200) {
+                obstacle.x = gameState.crow.x + 300;
             }
             
-            moves = 0;
-            updateStats();
-            renderBoard();
-            hideMessage();
-            createLevelButtons();
+            gameState.obstacles.push(obstacle);
         }
 
-        function renderBoard() {
-            const board = document.getElementById('gameBoard');
-            board.innerHTML = '';
+        // Update Game State
+        function update(deltaTime) {
+            if (!gameState.isPlaying || gameState.isPaused) return;
             
-            for (let row = 0; row < gameState.length; row++) {
-                for (let col = 0; col < gameState[row].length; col++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    
-                    const item = gameState[row][col];
-                    switch(item) {
-                        case 'C':
-                            cell.classList.add('crow');
-                            cell.textContent = '🐦';
-                            break;
-                        case 'F':
-                            cell.classList.add('food');
-                            cell.textContent = '🍎';
-                            break;
-                        case 'X':
-                            cell.classList.add('obstacle');
-                            cell.textContent = '🚧';
-                            break;
-                        case 'G':
-                            cell.classList.add('goal');
-                            cell.textContent = '⭐';
-                            break;
-                        default:
-                            cell.textContent = '';
-                    }
-                    
-                    board.appendChild(cell);
-                }
-            }
-        }
-
-        function moveCrow(direction) {
-            let newRow = crowPosition.row;
-            let newCol = crowPosition.col;
+            const level = LEVELS[gameState.currentLevel];
             
-            switch(direction) {
-                case 'up': newRow--; break;
-                case 'down': newRow++; break;
-                case 'left': newCol--; break;
-                case 'right': newCol++; break;
-            }
-            
-            // Check bounds
-            if (newRow < 0 || newRow >= gameState.length || 
-                newCol < 0 || newCol >= gameState[0].length) {
-                showMessage("Can't move outside the board!", "error");
+            // Update game time
+            gameState.gameTime -= deltaTime / 1000;
+            if (gameState.gameTime <= 0) {
+                gameOver("Time's up!");
                 return;
             }
             
-            // Check obstacle
-            if (gameState[newRow][newCol] === 'X') {
-                showMessage("Oops! Hit an obstacle!", "error");
-                return;
+            // Handle input
+            if (gameState.keys['ArrowLeft'] || gameState.keys['KeyA']) {
+                gameState.crow.vx = -CONFIG.crowSpeed;
+                gameState.crow.direction = -1;
+            } else if (gameState.keys['ArrowRight'] || gameState.keys['KeyD']) {
+                gameState.crow.vx = CONFIG.crowSpeed;
+                gameState.crow.direction = 1;
+            } else {
+                gameState.crow.vx *= 0.9;
             }
             
-            // Move crow
-            gameState[crowPosition.row][crowPosition.col] = '.';
-            crowPosition = { row: newRow, col: newCol };
+            if (gameState.keys['ArrowUp'] || gameState.keys['KeyW']) {
+                jump();
+            }
             
-            // Check what's in the new position
-            const item = gameState[newRow][newCol];
-            if (item === 'F') {
-                foodCollected++;
-                score += 100;
-                showMessage("Yum! Food collected! +100 points", "success");
-            } else if (item === 'G') {
-                if (foodCollected === totalFood) {
-                    score += 500;
-                    showMessage("🎉 Level Complete! +500 points", "success");
-                    setTimeout(() => {
-                        if (currentLevel < levels.length - 1) {
-                            nextLevel();
-                        } else {
-                            showMessage("🏆 Congratulations! You've completed all levels!", "success");
+            // Apply gravity
+            gameState.crow.vy += CONFIG.gravity;
+            
+            // Update crow position
+            gameState.crow.x += gameState.crow.vx;
+            gameState.crow.y += gameState.crow.vy;
+            
+            // Boundary checks
+            if (gameState.crow.x < 0) gameState.crow.x = 0;
+            if (gameState.crow.x > CONFIG.canvasWidth - gameState.crow.width) {
+                gameState.crow.x = CONFIG.canvasWidth - gameState.crow.width;
+            }
+            
+            // Platform collision
+            gameState.crow.isJumping = true;
+            for (const platform of gameState.platforms) {
+                if (gameState.crow.vy >= 0 &&
+                    gameState.crow.x + gameState.crow.width > platform.x &&
+                    gameState.crow.x < platform.x + platform.width &&
+                    gameState.crow.y + gameState.crow.height >= platform.y &&
+                    gameState.crow.y + gameState.crow.height <= platform.y + platform.height + 20) {
+                    
+                    gameState.crow.y = platform.y - gameState.crow.height;
+                    gameState.crow.vy = 0;
+                    gameState.crow.isJumping = false;
+                }
+            }
+            
+            // Check floor
+            if (gameState.crow.y > CONFIG.canvasHeight - gameState.crow.height) {
+                gameState.crow.y = CONFIG.canvasHeight - gameState.crow.height;
+                gameState.crow.vy = 0;
+                gameState.crow.isJumping = false;
+            }
+            
+            // Update items (floating animation)
+            const time = Date.now() / 1000;
+            for (const item of gameState.items) {
+                if (!item.collected) {
+                    item.y += Math.sin(time * 2 + item.floatOffset) * 0.5;
+                    
+                    // Check collision with crow
+                    if (checkCollision(gameState.crow, item)) {
+                        item.collected = true;
+                        gameState.collected++;
+                        gameState.score += 10;
+                        createParticles(item.x, item.y, 10, '#ffd700');
+                        showFloatingText(item.x, item.y, '+10');
+                        
+                        if (gameState.collected >= level.targetCount) {
+                            setTimeout(() => levelComplete(), 500);
                         }
-                    }, 1500);
-                } else {
-                    showMessage("Collect all food before reaching the goal!", "error");
+                    }
                 }
             }
             
-            gameState[newRow][newCol] = 'C';
-            moves++;
-            updateStats();
-            renderBoard();
-        }
-
-        function setupKeyboardControls() {
-            document.addEventListener('keydown', (e) => {
-                switch(e.key) {
-                    case 'ArrowUp':
-                    case 'w':
-                    case 'W':
-                        moveCrow('up');
-                        break;
-                    case 'ArrowDown':
-                    case 's':
-                    case 'S':
-                        moveCrow('down');
-                        break;
-                    case 'ArrowLeft':
-                    case 'a':
-                    case 'A':
-                        moveCrow('left');
-                        break;
-                    case 'ArrowRight':
-                    case 'd':
-                    case 'D':
-                        moveCrow('right');
-                        break;
-                }
-            });
-        }
-
-        function updateStats() {
-            document.getElementById('score').textContent = score;
-            document.getElementById('moves').textContent = moves;
-            document.getElementById('level').textContent = currentLevel + 1;
-        }
-
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = `message ${type}`;
+            // Respawn items if needed
+            const activeItems = gameState.items.filter(i => !i.collected).length;
+            if (activeItems < 5 && gameState.collected < level.targetCount) {
+                spawnItem(level);
+            }
             
-            setTimeout(() => {
-                if (messageEl.textContent === text) {
-                    hideMessage();
+            // Update obstacles
+            for (const obstacle of gameState.obstacles) {
+                obstacle.x += obstacle.vx;
+                obstacle.y += obstacle.vy;
+                
+                // Bounce off walls
+                if (obstacle.x <= 0 || obstacle.x >= CONFIG.canvasWidth - obstacle.width) {
+                    obstacle.vx *= -1;
                 }
-            }, 2000);
+                if (obstacle.y <= 0 || obstacle.y >= CONFIG.canvasHeight - obstacle.height) {
+                    obstacle.vy *= -1;
+                }
+                
+                // Check collision with crow
+                if (checkCollision(gameState.crow, obstacle)) {
+                    gameState.lives--;
+                    createParticles(gameState.crow.x, gameState.crow.y, 15, '#ff0000');
+                    showFloatingText(gameState.crow.x, gameState.crow.y, '-1 ❤️');
+                    
+                    if (gameState.lives <= 0) {
+                        gameOver("Too many hits!");
+                        return;
+                    }
+                    
+                    // Push crow away
+                    const dx = gameState.crow.x - obstacle.x;
+                    const dy = gameState.crow.y - obstacle.y;
+                    const dist = Math.hypot(dx, dy);
+                    gameState.crow.vx = (dx / dist) * 10;
+                    gameState.crow.vy = (dy / dist) * 10;
+                }
+            }
+            
+            // Update particles
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const particle = gameState.particles[i];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += 0.2;
+                particle.life -= 0.02;
+                
+                if (particle.life <= 0) {
+                    gameState.particles.splice(i, 1);
+                }
+            }
+            
+            updateUI();
         }
 
-        function hideMessage() {
-            const messageEl = document.getElementById('message');
-            messageEl.className = 'message';
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
         }
 
-        function resetLevel() {
-            loadLevel(currentLevel);
+        function showFloatingText(x, y, text) {
+            const element = document.createElement('div');
+            element.className = 'floating-text';
+            element.textContent = text;
+            element.style.left = x + 'px';
+            element.style.top = y + 'px';
+            document.getElementById('ui-overlay').appendChild(element);
+            
+            setTimeout(() => element.remove(), 1000);
+        }
+
+        // Render Game
+        function render() {
+            const level = LEVELS[gameState.currentLevel];
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            drawBackground(level);
+            
+            // Draw platforms
+            for (const platform of gameState.platforms) {
+                const gradient = ctx.createLinearGradient(
+                    platform.x, platform.y,
+                    platform.x, platform.y + platform.height
+                );
+                gradient.addColorStop(0, '#8b7355');
+                gradient.addColorStop(1, '#654321');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                
+                // Add grass on top
+                ctx.fillStyle = '#228b22';
+                ctx.fillRect(platform.x, platform.y, platform.width, 5);
+            }
+            
+            // Draw items
+            const time = Date.now() / 1000;
+            for (const item of gameState.items) {
+                if (!item.collected) {
+                    ctx.font = `${CONFIG.itemSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Glow effect
+                    ctx.shadowColor = '#ffd700';
+                    ctx.shadowBlur = 15 + Math.sin(time * 3) * 5;
+                    ctx.fillText(item.type, item.x + item.width/2, item.y + item.height/2);
+                    ctx.shadowBlur = 0;
+                }
+            }
+            
+            // Draw obstacles
+            for (const obstacle of gameState.obstacles) {
+                ctx.font = `${CONFIG.obstacleSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(obstacle.type, obstacle.x + obstacle.width/2, obstacle.y + obstacle.height/2);
+            }
+            
+            // Draw crow
+            ctx.save();
+            ctx.translate(gameState.crow.x + gameState.crow.width/2, gameState.crow.y + gameState.crow.height/2);
+            ctx.scale(gameState.crow.direction, 1);
+            ctx.font = `${CONFIG.crowSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Wing animation
+            const wingOffset = Math.sin(time * 10) * 5;
+            ctx.fillText(level.crowEmoji, 0, wingOffset);
+            ctx.restore();
+            
+            // Draw particles
+            for (const particle of gameState.particles) {
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            // Draw timer
+            if (gameState.isPlaying) {
+                ctx.fillStyle = gameState.gameTime < 10 ? '#ff4444' : '#ffffff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(`⏱️ ${Math.ceil(gameState.gameTime)}s`, canvas.width - 20, 40);
+            }
+        }
+
+        function drawBackground(level) {
+            const bg = level.background;
+            
+            if (bg.type === 'gradient') {
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                bg.colors.forEach((color, index) => {
+                    gradient.addColorStop(index / (bg.colors.length - 1), color);
+                });
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background elements
+                drawBackgroundElements(bg.elements);
+            } else if (bg.type === 'space') {
+                // Space background
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Stars
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 200; i++) {
+                    const x = (Math.sin(i * 567) * canvas.width + canvas.width) % canvas.width;
+                    const y = (Math.cos(i * 789) * canvas.height + canvas.height) % canvas.height;
+                    const size = Math.random() * 2 + 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Planets
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(canvas.width * 0.8, canvas.height * 0.2, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(canvas.width * 0.2, canvas.height * 0.7, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawBackgroundElements(elements) {
+            ctx.globalAlpha = 0.3;
+            
+            if (elements.includes('trees')) {
+                // Draw jungle trees
+                for (let i = 0; i < 10; i++) {
+                    const x = i * 150 + 50;
+                    const height = 200 + Math.random() * 100;
+                    ctx.fillStyle = '#2d5016';
+                    ctx.fillRect(x, canvas.height - height, 30, height);
+                    
+                    // Tree top
+                    ctx.fillStyle = '#4a7c23';
+                    ctx.beginPath();
+                    ctx.arc(x + 15, canvas.height - height, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            if (elements.includes('buildings')) {
+                // Draw city buildings
+                for (let i = 0; i < 15; i++) {
+                    const x = i * 120 + 30;
+                    const height = 150 + Math.random() * 200;
+                    const width = 60 + Math.random() * 40;
+                    
+                    ctx.fillStyle = '#16213e';
+                    ctx.fillRect(x, canvas.height - height, width, height);
+                    
+                    // Windows
+                    ctx.fillStyle = '#f9e79f';
+                    for (let row = 0; row < 5; row++) {
+                        for (let col = 0; col < 2; col++) {
+                            if (Math.random() > 0.3) {
+                                ctx.fillRect(
+                                    x + 10 + col * 25,
+                                    canvas.height - height + 20 + row * 30,
+                                    15,
+                                    20
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (elements.includes('houses')) {
+                // Draw village houses
+                for (let i = 0; i < 8; i++) {
+                    const x = i * 200 + 80;
+                    ctx.fillStyle = '#8b4513';
+                    ctx.fillRect(x, canvas.height - 120, 80, 120);
+                    
+                    // Roof
+                    ctx.fillStyle = '#cd853f';
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, canvas.height - 120);
+                    ctx.lineTo(x + 40, canvas.height - 170);
+                    ctx.lineTo(x + 90, canvas.height - 120);
+                    ctx.fill();
+                }
+            }
+            
+            if (elements.includes('mountains')) {
+                // Draw mountains
+                ctx.fillStyle = '#2c3e50';
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+                for (let i = 0; i <= canvas.width; i += 100) {
+                    ctx.lineTo(i, canvas.height - 200 - Math.random() * 150);
+                }
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.fill();
+            }
+            
+            ctx.globalAlpha = 1;
+        }
+
+        function updateUI() {
+            document.getElementById('score-display').textContent = `Score: ${gameState.score}`;
+            document.getElementById('lives-display').textContent = `Lives: ${gameState.lives}`;
+            document.getElementById('level-display').textContent = `Level: ${gameState.currentLevel + 1}`;
+            
+            const level = LEVELS[gameState.currentLevel];
+            const progress = (gameState.collected / level.targetCount) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        function showScreen(screenId) {
+            ['start-screen', 'level-complete', 'game-over', 'victory-screen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            if (screenId) {
+                document.getElementById(screenId).classList.remove('hidden');
+            }
+        }
+
+        function startGame() {
+            gameState.currentLevel = 0;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.isPlaying = true;
+            
+            initLevel(gameState.currentLevel);
+            
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('level-indicator').classList.remove('hidden');
+            document.getElementById('progress-container').classList.remove('hidden');
+            document.getElementById('task-description').classList.remove('hidden');
+            document.getElementById('controls-hint').classList.remove('hidden');
+            
+            updateTaskDescription();
+            showScreen(null);
+            
+            gameLoop();
+        }
+
+        function updateTaskDescription() {
+            const level = LEVELS[gameState.currentLevel];
+            document.getElementById('level-indicator').textContent = `${level.name}`;
+            document.getElementById('task-description').textContent = level.task;
+        }
+
+        function levelComplete() {
+            gameState.isPlaying = false;
+            
+            if (gameState.currentLevel < LEVELS.length - 1) {
+                document.getElementById('level-complete-msg').textContent = 
+                    `Amazing! You collected ${gameState.collected} items in ${LEVELS[gameState.currentLevel].name}!`;
+                showScreen('level-complete');
+            } else {
+                // Victory!
+                document.getElementById('final-score').textContent = gameState.score;
+                showScreen('victory-screen');
+            }
         }
 
         function nextLevel() {
-            if (currentLevel < levels.length - 1) {
-                loadLevel(currentLevel + 1);
-            } else {
-                showMessage("You've completed all levels! 🏆", "success");
-            }
+            gameState.currentLevel++;
+            gameState.isPlaying = true;
+            
+            initLevel(gameState.currentLevel);
+            updateTaskDescription();
+            showScreen(null);
         }
 
-        // Initialize game on load
-        window.onload = initGame;
+        function gameOver(reason) {
+            gameState.isPlaying = false;
+            document.getElementById('game-over-msg').textContent = reason;
+            showScreen('game-over');
+        }
+
+        function retryLevel() {
+            gameState.lives = 3;
+            gameState.collected = 0;
+            gameState.score = Math.max(0, gameState.score - 50); // Penalty for dying
+            gameState.isPlaying = true;
+            
+            initLevel(gameState.currentLevel);
+            showScreen(null);
+        }
+
+        function playAgain() {
+            startGame();
+        }
+
+        // Game Loop
+        function gameLoop(timestamp) {
+            if (!gameState.lastTime) gameState.lastTime = timestamp;
+            const deltaTime = timestamp - gameState.lastTime;
+            gameState.lastTime = timestamp;
+            
+            update(deltaTime);
+            render();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event Listeners
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('next-level-btn').addEventListener('click', nextLevel);
+        document.getElementById('retry-btn').addEventListener('click', retryLevel);
+        document.getElementById('play-again-btn').addEventListener('click', playAgain);
+
+        // Initial render
+        render();
     </script>
 </body>
 </html>
