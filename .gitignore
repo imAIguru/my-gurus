@@ -1,0 +1,1 @@
+Nothing needs to be added to .gitignore since the only change is adding a single HTML file (`clever-crow-game.html`) which is a source code file and should not be ignored.

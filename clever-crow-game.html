@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clever Crow - Modern Puzzle Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 800px;
+            width: 95%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            display: block;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            background: #2d3748;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #4a5568;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            background: #718096;
+        }
+
+        .cell.crow {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            animation: pulse 2s infinite;
+        }
+
+        .cell.food {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: bounce 1s infinite;
+        }
+
+        .cell.obstacle {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .cell.goal {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            animation: glow 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px #43e97b; }
+            50% { box-shadow: 0 0 20px #43e97b, 0 0 30px #43e97b; }
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto 20px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+            display: none;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            display: block;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            display: block;
+        }
+
+        .instructions {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #4a5568;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .level-btn:hover {
+            background: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🐦 Clever Crow</h1>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-value" id="score">0</span>
+                Score
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="moves">0</span>
+                Moves
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="level">1</span>
+                Level
+            </div>
+        </div>
+
+        <div class="level-selector" id="levelSelector"></div>
+
+        <div class="message" id="message"></div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="moveCrow('up')">⬆️</button>
+            <button class="control-btn" onclick="moveCrow('left')">⬅️</button>
+            <button class="control-btn" onclick="moveCrow('right')">➡️</button>
+            <button class="control-btn" onclick="moveCrow('down')">⬇️</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn" onclick="resetLevel()">🔄 Reset Level</button>
+            <button class="action-btn" onclick="nextLevel()">➡️ Next Level</button>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li>🐦 You are the clever crow (purple)</li>
+                <li>🍎 Collect all food items (pink/red)</li>
+                <li>🚧 Avoid obstacles (blue)</li>
+                <li>⭐ Reach the goal (green) to complete the level</li>
+                <li>Use arrow buttons or keyboard arrows to move</li>
+                <li>Complete all levels to win the game!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const levels = [
+            {
+                name: "First Flight",
+                grid: [
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
+                    ['.', '.', '.', 'F', '.', '.', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.']
+                ]
+            },
+            {
+                name: "Obstacle Course",
+                grid: [
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', 'C', '.', 'X', '.', '.', '.', '.'],
+                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
+                    ['.', '.', '.', 'X', '.', 'F', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.'],
+                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.']
+                ]
+            },
+            {
+                name: "Food Hunt",
+                grid: [
+                    ['.', '.', 'F', '.', '.', 'F', '.', '.'],
+                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
+                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
+                    ['F', '.', '.', 'X', '.', '.', 'F', '.'],
+                    ['.', '.', '.', 'X', '.', '.', '.', '.'],
+                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
+                    ['.', '.', '.', '.', '.', '.', 'G', '.'],
+                    ['.', '.', '.', '.', '.', '.', '.', '.']
+                ]
+            },
+            {
+                name: "Maze Runner",
+                grid: [
+                    ['.', 'X', '.', '.', '.', 'X', '.', '.'],
+                    ['.', 'X', '.', 'X', '.', 'X', '.', '.'],
+                    ['.', 'C', '.', 'X', '.', '.', '.', '.'],
+                    ['.', '.', '.', 'X', 'X', 'X', 'X', '.'],
+                    ['X', 'X', 'X', '.', '.', '.', 'X', '.'],
+                    ['.', '.', '.', '.', 'X', '.', 'X', '.'],
+                    ['.', 'X', 'X', 'X', 'X', '.', 'G', '.'],
+                    ['.', '.', 'F', '.', '.', '.', '.', '.']
+                ]
+            },
+            {
+                name: "Final Challenge",
+                grid: [
+                    ['.', '.', 'F', '.', '.', '.', 'F', '.'],
+                    ['X', 'X', 'X', '.', 'X', 'X', 'X', '.'],
+                    ['.', 'C', '.', '.', '.', '.', '.', '.'],
+                    ['.', 'X', 'X', 'X', 'X', 'X', '.', '.'],
+                    ['.', '.', '.', '.', '.', 'X', '.', 'F'],
+                    ['X', 'X', '.', 'X', '.', 'X', 'X', 'X'],
+                    ['F', '.', '.', 'X', '.', '.', '.', 'G'],
+                    ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']
+                ]
+            }
+        ];
+
+        let currentLevel = 0;
+        let gameState = [];
+        let crowPosition = { row: 0, col: 0 };
+        let score = 0;
+        let moves = 0;
+        let foodCollected = 0;
+        let totalFood = 0;
+
+        function initGame() {
+            loadLevel(currentLevel);
+            createLevelButtons();
+            setupKeyboardControls();
+        }
+
+        function createLevelButtons() {
+            const container = document.getElementById('levelSelector');
+            container.innerHTML = '';
+            
+            levels.forEach((level, index) => {
+                const btn = document.createElement('button');
+                btn.className = `level-btn ${index === currentLevel ? 'active' : ''}`;
+                btn.textContent = `Level ${index + 1}`;
+                btn.onclick = () => loadLevel(index);
+                container.appendChild(btn);
+            });
+        }
+
+        function loadLevel(levelIndex) {
+            currentLevel = levelIndex;
+            const level = levels[levelIndex];
+            
+            // Deep copy the grid
+            gameState = level.grid.map(row => [...row]);
+            
+            // Find crow position and count food
+            foodCollected = 0;
+            totalFood = 0;
+            
+            for (let row = 0; row < gameState.length; row++) {
+                for (let col = 0; col < gameState[row].length; col++) {
+                    if (gameState[row][col] === 'C') {
+                        crowPosition = { row, col };
+                    } else if (gameState[row][col] === 'F') {
+                        totalFood++;
+                    }
+                }
+            }
+            
+            moves = 0;
+            updateStats();
+            renderBoard();
+            hideMessage();
+            createLevelButtons();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            
+            for (let row = 0; row < gameState.length; row++) {
+                for (let col = 0; col < gameState[row].length; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    const item = gameState[row][col];
+                    switch(item) {
+                        case 'C':
+                            cell.classList.add('crow');
+                            cell.textContent = '🐦';
+                            break;
+                        case 'F':
+                            cell.classList.add('food');
+                            cell.textContent = '🍎';
+                            break;
+                        case 'X':
+                            cell.classList.add('obstacle');
+                            cell.textContent = '🚧';
+                            break;
+                        case 'G':
+                            cell.classList.add('goal');
+                            cell.textContent = '⭐';
+                            break;
+                        default:
+                            cell.textContent = '';
+                    }
+                    
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function moveCrow(direction) {
+            let newRow = crowPosition.row;
+            let newCol = crowPosition.col;
+            
+            switch(direction) {
+                case 'up': newRow--; break;
+                case 'down': newRow++; break;
+                case 'left': newCol--; break;
+                case 'right': newCol++; break;
+            }
+            
+            // Check bounds
+            if (newRow < 0 || newRow >= gameState.length || 
+                newCol < 0 || newCol >= gameState[0].length) {
+                showMessage("Can't move outside the board!", "error");
+                return;
+            }
+            
+            // Check obstacle
+            if (gameState[newRow][newCol] === 'X') {
+                showMessage("Oops! Hit an obstacle!", "error");
+                return;
+            }
+            
+            // Move crow
+            gameState[crowPosition.row][crowPosition.col] = '.';
+            crowPosition = { row: newRow, col: newCol };
+            
+            // Check what's in the new position
+            const item = gameState[newRow][newCol];
+            if (item === 'F') {
+                foodCollected++;
+                score += 100;
+                showMessage("Yum! Food collected! +100 points", "success");
+            } else if (item === 'G') {
+                if (foodCollected === totalFood) {
+                    score += 500;
+                    showMessage("🎉 Level Complete! +500 points", "success");
+                    setTimeout(() => {
+                        if (currentLevel < levels.length - 1) {
+                            nextLevel();
+                        } else {
+                            showMessage("🏆 Congratulations! You've completed all levels!", "success");
+                        }
+                    }, 1500);
+                } else {
+                    showMessage("Collect all food before reaching the goal!", "error");
+                }
+            }
+            
+            gameState[newRow][newCol] = 'C';
+            moves++;
+            updateStats();
+            renderBoard();
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        moveCrow('up');
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        moveCrow('down');
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        moveCrow('left');
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        moveCrow('right');
+                        break;
+                }
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('level').textContent = currentLevel + 1;
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            
+            setTimeout(() => {
+                if (messageEl.textContent === text) {
+                    hideMessage();
+                }
+            }, 2000);
+        }
+
+        function hideMessage() {
+            const messageEl = document.getElementById('message');
+            messageEl.className = 'message';
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                loadLevel(currentLevel + 1);
+            } else {
+                showMessage("You've completed all levels! 🏆", "success");
+            }
+        }
+
+        // Initialize game on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
