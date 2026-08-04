@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clever Crow - Adventure Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            pointer-events: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+        }
+        .hidden { display: none !important; }
+        h1 { color: #2d3436; margin-bottom: 20px; font-size: 2.5em; }
+        h2 { color: #2d3436; margin-bottom: 15px; }
+        p { color: #636e72; margin-bottom: 20px; line-height: 1.6; }
+        button {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(108, 92, 231, 0.4);
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        .hud-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #2d3436;
+            font-size: 1.1em;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #task-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-align: center;
+            pointer-events: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            min-width: 300px;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            pointer-events: auto;
+        }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #6c5ce7;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-row { display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="hud" class="hidden">
+                <div class="hud-item">🏆 Score: <span id="score">0</span></div>
+                <div class="hud-item">❤️ Lives: <span id="lives">3</span></div>
+                <div class="hud-item">⏱️ Time: <span id="time">60</span>s</div>
+                <div class="hud-item">🎯 Level: <span id="level-display">1</span>/5</div>
+            </div>
+            
+            <div id="task-bar" class="hidden">
+                <strong>Task:</strong> <span id="task-text">Collect items!</span><br>
+                <span id="progress">0/10</span> collected
+            </div>
+            
+            <div id="start-screen" class="screen">
+                <h1>🐦 Clever Crow</h1>
+                <p>Welcome to the Clever Crow adventure! Help the crow complete tasks across 5 different environments.</p>
+                <p><strong>Controls:</strong> Arrow Keys or WASD to move<br>Collect items • Avoid obstacles</p>
+                <button id="start-btn">Start Game</button>
+            </div>
+            
+            <div id="level-complete" class="screen hidden">
+                <h2>🎉 Level Complete!</h2>
+                <p id="level-msg">Great job!</p>
+                <button id="next-level-btn">Next Level</button>
+            </div>
+            
+            <div id="game-over" class="screen hidden">
+                <h2>😢 Game Over</h2>
+                <p id="game-over-msg">Try again!</p>
+                <button id="retry-btn">Retry Level</button>
+                <button id="play-again-btn">Play Again</button>
+            </div>
+            
+            <div id="victory" class="screen hidden">
+                <h1>🏆 Victory!</h1>
+                <p>You've completed all levels! The clever crow has succeeded!</p>
+                <p>Final Score: <span id="final-score">0</span></p>
+                <button id="play-again-btn-2">Play Again</button>
+            </div>
+            
+            <div id="controls">
+                <div class="control-row">
+                    <button class="control-btn" id="btn-up">⬆️</button>
+                </div>
+                <div class="control-row">
+                    <button class="control-btn" id="btn-left">⬅️</button>
+                    <button class="control-btn" id="btn-down">⬇️</button>
+                    <button class="control-btn" id="btn-right">➡️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        const levels = [
+            { name: "Jungle", bg: ["#134E5E", "#71B280"], task: "Collect Fruits", item: "🍎", obstacle: "🌵", required: 10, time: 60 },
+            { name: "City", bg: ["#232526", "#414345"], task: "Collect Coins", item: "🪙", obstacle: "🚗", required: 15, time: 50 },
+            { name: "Village", bg: ["#DAE2F8", "#D6A4A4"], task: "Collect Seeds", item: "🌾", obstacle: "🏠", required: 12, time: 55 },
+            { name: "Mountains", bg: ["#485563", "#29323C"], task: "Collect Gems", item: "💎", obstacle: "🪨", required: 18, time: 45 },
+            { name: "Space", bg: ["#0F0C29", "#302B63"], task: "Collect Stars", item: "⭐", obstacle: "☄️", required: 20, time: 40 }
+        ];
+        
+        let gameState = {
+            screen: 'start',
+            currentLevel: 0,
+            score: 0,
+            lives: 3,
+            collected: 0,
+            timeLeft: 60,
+            isPlaying: false,
+            lastTime: 0
+        };
+        
+        let player = { x: 0, y: 0, size: 40, speed: 300, vx: 0, vy: 0 };
+        let items = [];
+        let obstacles = [];
+        let particles = [];
+        let keys = {};
+        
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('task-bar').classList.add('hidden');
+            
+            if (id) {
+                document.getElementById(id).classList.remove('hidden');
+            } else {
+                document.getElementById('hud').classList.remove('hidden');
+                document.getElementById('task-bar').classList.remove('hidden');
+            }
+        }
+        
+        function initLevel(levelIndex) {
+            const level = levels[levelIndex];
+            gameState.collected = 0;
+            gameState.timeLeft = level.time;
+            
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.vx = 0;
+            player.vy = 0;
+            
+            items = [];
+            for (let i = 0; i < level.required + 5; i++) {
+                items.push({
+                    x: Math.random() * (canvas.width - 60) + 30,
+                    y: Math.random() * (canvas.height - 60) + 30,
+                    size: 30,
+                    floatOffset: Math.random() * Math.PI * 2
+                });
+            }
+            
+            obstacles = [];
+            for (let i = 0; i < 8 + levelIndex * 2; i++) {
+                obstacles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: 40,
+                    vx: (Math.random() - 0.5) * (50 + levelIndex * 20),
+                    vy: (Math.random() - 0.5) * (50 + levelIndex * 20)
+                });
+            }
+            
+            particles = [];
+            updateHUD();
+            updateTaskDescription();
+        }
+        
+        function updateHUD() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+            document.getElementById('time').textContent = Math.ceil(gameState.timeLeft);
+            document.getElementById('level-display').textContent = gameState.currentLevel + 1;
+        }
+        
+        function updateTaskDescription() {
+            const level = levels[gameState.currentLevel];
+            document.getElementById('task-text').textContent = `${level.task} (${level.item})`;
+            document.getElementById('progress').textContent = `${gameState.collected}/${level.required}`;
+        }
+        
+        function spawnParticles(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 200,
+                    vy: (Math.random() - 0.5) * 200,
+                    life: 1,
+                    color: color
+                });
+            }
+        }
+        
+        function update(deltaTime) {
+            if (!gameState.isPlaying) return;
+            
+            const dt = deltaTime / 1000;
+            gameState.timeLeft -= dt;
+            
+            if (gameState.timeLeft <= 0) {
+                gameOver("Time's up!");
+                return;
+            }
+            
+            // Player movement
+            player.vx = 0;
+            player.vy = 0;
+            if (keys['ArrowUp'] || keys['KeyW']) player.vy = -player.speed;
+            if (keys['ArrowDown'] || keys['KeyS']) player.vy = player.speed;
+            if (keys['ArrowLeft'] || keys['KeyA']) player.vx = -player.speed;
+            if (keys['ArrowRight'] || keys['KeyD']) player.vx = player.speed;
+            
+            player.x += player.vx * dt;
+            player.y += player.vy * dt;
+            
+            // Boundaries
+            player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
+            player.y = Math.max(20, Math.min(canvas.height - 20, player.y));
+            
+            // Update obstacles
+            obstacles.forEach(obs => {
+                obs.x += obs.vx * dt;
+                obs.y += obs.vy * dt;
+                
+                if (obs.x < 0 || obs.x > canvas.width) obs.vx *= -1;
+                if (obs.y < 0 || obs.y > canvas.height) obs.vy *= -1;
+                
+                // Collision with player
+                const dx = player.x - obs.x;
+                const dy = player.y - obs.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < player.size / 2 + obs.size / 2) {
+                    gameState.lives--;
+                    spawnParticles(player.x, player.y, '#ff0000');
+                    
+                    if (gameState.lives <= 0) {
+                        gameOver("You ran out of lives!");
+                    } else {
+                        player.x = canvas.width / 2;
+                        player.y = canvas.height / 2;
+                    }
+                    updateHUD();
+                }
+            });
+            
+            // Collect items
+            const level = levels[gameState.currentLevel];
+            items = items.filter(item => {
+                const dx = player.x - item.x;
+                const dy = player.y - item.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < player.size / 2 + item.size / 2) {
+                    gameState.collected++;
+                    gameState.score += 10;
+                    spawnParticles(item.x, item.y, '#ffd700');
+                    updateHUD();
+                    updateTaskDescription();
+                    
+                    if (gameState.collected >= level.required) {
+                        setTimeout(() => levelComplete(), 100);
+                    }
+                    return false;
+                }
+                return true;
+            });
+            
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.life -= dt * 2;
+                return p.life > 0;
+            });
+            
+            updateHUD();
+        }
+        
+        function render() {
+            const level = levels[gameState.currentLevel];
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, level.bg[0]);
+            gradient.addColorStop(1, level.bg[1]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw decorative elements
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            for (let i = 0; i < 20; i++) {
+                const x = (i * 137) % canvas.width;
+                const y = (i * 89) % canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw items with floating animation
+            const time = Date.now() / 1000;
+            items.forEach(item => {
+                const floatY = Math.sin(time * 2 + item.floatOffset) * 5;
+                ctx.font = `${item.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(level.item, item.x, item.y + floatY);
+            });
+            
+            // Draw obstacles
+            obstacles.forEach(obs => {
+                ctx.font = `${obs.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(level.obstacle, obs.x, obs.y);
+            });
+            
+            // Draw player (crow)
+            ctx.font = `${player.size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            if (player.vx < 0) ctx.scale(-1, 1);
+            ctx.fillText('🐦', 0, 0);
+            ctx.restore();
+            
+            // Draw particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5 * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            
+            requestAnimationFrame(render);
+        }
+        
+        function startGame() {
+            gameState.currentLevel = 0;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.isPlaying = true;
+            initLevel(0);
+            showScreen(null);
+        }
+        
+        function levelComplete() {
+            gameState.isPlaying = false;
+            gameState.score += Math.floor(gameState.timeLeft) * 2;
+            
+            if (gameState.currentLevel >= levels.length - 1) {
+                document.getElementById('final-score').textContent = gameState.score;
+                showScreen('victory');
+            } else {
+                document.getElementById('level-msg').textContent = 
+                    `Completed ${levels[gameState.currentLevel].name}! Score: ${gameState.score}`;
+                showScreen('level-complete');
+            }
+        }
+        
+        function nextLevel() {
+            gameState.currentLevel++;
+            gameState.isPlaying = true;
+            initLevel(gameState.currentLevel);
+            showScreen(null);
+        }
+        
+        function gameOver(reason) {
+            gameState.isPlaying = false;
+            document.getElementById('game-over-msg').textContent = reason;
+            showScreen('game-over');
+        }
+        
+        function retryLevel() {
+            gameState.lives = 3;
+            gameState.collected = 0;
+            gameState.score = Math.max(0, gameState.score - 50);
+            gameState.isPlaying = true;
+            initLevel(gameState.currentLevel);
+            showScreen(null);
+        }
+        
+        function playAgain() {
+            startGame();
+        }
+        
+        // Event listeners
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('next-level-btn').addEventListener('click', nextLevel);
+        document.getElementById('retry-btn').addEventListener('click', retryLevel);
+        document.getElementById('play-again-btn').addEventListener('click', playAgain);
+        document.getElementById('play-again-btn-2').addEventListener('click', playAgain);
+        
+        // Keyboard controls
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+        
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+        
+        // Touch controls
+        document.getElementById('btn-up').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowUp'] = true; });
+        document.getElementById('btn-down').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowDown'] = true; });
+        document.getElementById('btn-left').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowLeft'] = true; });
+        document.getElementById('btn-right').addEventListener('touchstart', e => { e.preventDefault(); keys['ArrowRight'] = true; });
+        
+        document.getElementById('btn-up').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowUp'] = false; });
+        document.getElementById('btn-down').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowDown'] = false; });
+        document.getElementById('btn-left').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowLeft'] = false; });
+        document.getElementById('btn-right').addEventListener('touchend', e => { e.preventDefault(); keys['ArrowRight'] = false; });
+        
+        // Mouse controls for testing
+        document.getElementById('btn-up').addEventListener('mousedown', () => keys['ArrowUp'] = true);
+        document.getElementById('btn-down').addEventListener('mousedown', () => keys['ArrowDown'] = true);
+        document.getElementById('btn-left').addEventListener('mousedown', () => keys['ArrowLeft'] = true);
+        document.getElementById('btn-right').addEventListener('mousedown', () => keys['ArrowRight'] = true);
+        
+        document.getElementById('btn-up').addEventListener('mouseup', () => keys['ArrowUp'] = false);
+        document.getElementById('btn-down').addEventListener('mouseup', () => keys['ArrowDown'] = false);
+        document.getElementById('btn-left').addEventListener('mouseup', () => keys['ArrowLeft'] = false);
+        document.getElementById('btn-right').addEventListener('mouseup', () => keys['ArrowRight'] = false);
+        
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
