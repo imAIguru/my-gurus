@@ -2,6 +2,8 @@ name: OCI A1 Capacity Watcher
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
 
 permissions:
   contents: read
