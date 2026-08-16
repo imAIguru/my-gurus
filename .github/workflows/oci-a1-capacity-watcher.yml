@@ -21,8 +21,6 @@ jobs:
       OCI_REGION: me-dubai-1
       OCI_AVAILABILITY_DOMAIN: rbVX:ME-DUBAI-1-AD-1
       OCI_SHAPE: VM.Standard.A1.Flex
-      OCI_OCPUS: "2"
-      OCI_MEMORY_GB: "12"
       OCI_FAULT_DOMAINS: FAULT-DOMAIN-1,FAULT-DOMAIN-2,FAULT-DOMAIN-3
       OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
       OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
@@ -58,38 +56,80 @@ jobs:
       - name: Install OCI SDK
         run: pip install -r oci-a1-capacity-watcher/requirements.txt
 
-      - name: Check Dubai A1 capacity
-        id: capacity
+      - name: Check Dubai A1 capacity - 2 OCPU / 12 GB
+        id: capacity_2_12
+        env:
+          OCI_OCPUS: "2"
+          OCI_MEMORY_GB: "12"
         run: python oci-a1-capacity-watcher/check_capacity.py
 
-      - name: Upload capacity report
+      - name: Upload 2 OCPU / 12 GB report
         uses: actions/upload-artifact@v4
         with:
-          name: oci-a1-capacity-report
+          name: oci-a1-capacity-report-2ocpu-12gb
           path: |
             capacity-report.json
             capacity-report.md
           retention-days: 7
 
-      - name: Open alert issue when capacity is available
-        if: steps.capacity.outputs.available == 'true'
+      - name: Open 2 OCPU / 12 GB alert when available
+        if: steps.capacity_2_12.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          AVAILABLE_FDS: ${{ steps.capacity.outputs.available_fault_domains }}
+          AVAILABLE_FDS: ${{ steps.capacity_2_12.outputs.available_fault_domains }}
         run: |
-          existing="$(gh issue list --state open --search 'OCI A1 AVAILABLE in:title' --json number --jq '.[0].number // empty')"
+          existing="$(gh issue list --state open --search 'OCI A1 AVAILABLE - 2 OCPU / 12 GB in Dubai in:title' --json number --jq '.[0].number // empty')"
           if [ -n "$existing" ]; then
-            echo "An open capacity alert already exists: #$existing"
-            exit 0
+            echo "An open 2/12 capacity alert already exists: #$existing"
+          else
+            {
+              echo "Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 2 OCPU / 12 GB RAM in UAE East (Dubai)."
+              echo
+              echo "Available fault domain(s): $AVAILABLE_FDS"
+              echo
+              cat capacity-report.md
+            } > /tmp/issue-body-2-12.md
+            gh issue create \
+              --title "OCI A1 AVAILABLE - 2 OCPU / 12 GB in Dubai" \
+              --body-file /tmp/issue-body-2-12.md
           fi
-          {
-            echo "Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 2 OCPU / 12 GB RAM in UAE East (Dubai)."
-            echo
-            echo "Available fault domain(s): $AVAILABLE_FDS"
-            echo
-            cat capacity-report.md
-          } > /tmp/issue-body.md
-          gh issue create \
-            --title "OCI A1 AVAILABLE - 2 OCPU / 12 GB in Dubai" \
-            --body-file /tmp/issue-body.md
+
+      - name: Check Dubai A1 capacity - 1 OCPU / 6 GB
+        id: capacity_1_6
+        env:
+          OCI_OCPUS: "1"
+          OCI_MEMORY_GB: "6"
+        run: python oci-a1-capacity-watcher/check_capacity.py
+
+      - name: Upload 1 OCPU / 6 GB report
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-a1-capacity-report-1ocpu-6gb
+          path: |
+            capacity-report.json
+            capacity-report.md
+          retention-days: 7
+
+      - name: Open 1 OCPU / 6 GB alert when available
+        if: steps.capacity_1_6.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AVAILABLE_FDS: ${{ steps.capacity_1_6.outputs.available_fault_domains }}
+        run: |
+          existing="$(gh issue list --state open --search 'OCI A1 AVAILABLE - 1 OCPU / 6 GB in Dubai in:title' --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            echo "An open 1/6 capacity alert already exists: #$existing"
+          else
+            {
+              echo "Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 1 OCPU / 6 GB RAM in UAE East (Dubai)."
+              echo
+              echo "Available fault domain(s): $AVAILABLE_FDS"
+              echo
+              cat capacity-report.md
+            } > /tmp/issue-body-1-6.md
+            gh issue create \
+              --title "OCI A1 AVAILABLE - 1 OCPU / 6 GB in Dubai" \
+              --body-file /tmp/issue-body-1-6.md
+          fi
