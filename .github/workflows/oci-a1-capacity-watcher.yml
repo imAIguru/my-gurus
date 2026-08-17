@@ -88,7 +88,7 @@ jobs:
             echo "An open 2/12 capacity alert already exists: #$existing"
           else
             {
-              echo "Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 2 OCPU / 12 GB RAM."
+              echo "@imAIguru Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 2 OCPU / 12 GB RAM."
               echo
               echo "Available region(s): $AVAILABLE_REGIONS"
               echo "Available location(s): $AVAILABLE_LOCATIONS"
@@ -97,7 +97,8 @@ jobs:
             } > /tmp/issue-body-2-12.md
             gh issue create \
               --title "OCI A1 AVAILABLE - 2 OCPU / 12 GB" \
-              --body-file /tmp/issue-body-2-12.md
+              --body-file /tmp/issue-body-2-12.md \
+              --assignee imAIguru
           fi
 
       - name: Check all subscribed regions - 1 OCPU / 6 GB
@@ -134,7 +135,7 @@ jobs:
             echo "An open 1/6 capacity alert already exists: #$existing"
           else
             {
-              echo "Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 1 OCPU / 6 GB RAM."
+              echo "@imAIguru Capacity has been reported AVAILABLE for VM.Standard.A1.Flex with 1 OCPU / 6 GB RAM."
               echo
               echo "Available region(s): $AVAILABLE_REGIONS"
               echo "Available location(s): $AVAILABLE_LOCATIONS"
@@ -143,5 +144,43 @@ jobs:
             } > /tmp/issue-body-1-6.md
             gh issue create \
               --title "OCI A1 AVAILABLE - 1 OCPU / 6 GB" \
-              --body-file /tmp/issue-body-1-6.md
+              --body-file /tmp/issue-body-1-6.md \
+              --assignee imAIguru
+          fi
+
+      - name: Send hourly status notification for both sizes
+        if: always() && steps.capacity_2_12.outcome == 'success' && steps.capacity_1_6.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AVAILABLE_2_12: ${{ steps.capacity_2_12.outputs.available }}
+          REGIONS_2_12: ${{ steps.capacity_2_12.outputs.available_regions }}
+          AVAILABLE_1_6: ${{ steps.capacity_1_6.outputs.available }}
+          REGIONS_1_6: ${{ steps.capacity_1_6.outputs.available_regions }}
+        run: |
+          status_issue="$(gh issue list --state open --search 'OCI A1 Hourly Capacity Status in:title' --json number --jq '.[0].number // empty')"
+
+          status_2_12="UNAVAILABLE"
+          status_1_6="UNAVAILABLE"
+          if [ "$AVAILABLE_2_12" = "true" ]; then status_2_12="AVAILABLE"; fi
+          if [ "$AVAILABLE_1_6" = "true" ]; then status_1_6="AVAILABLE"; fi
+
+          {
+            echo "@imAIguru Hourly OCI A1 capacity check completed."
+            echo
+            echo "- **2 OCPU / 12 GB:** $status_2_12"
+            if [ -n "$REGIONS_2_12" ]; then echo "  - Regions: $REGIONS_2_12"; fi
+            echo "- **1 OCPU / 6 GB:** $status_1_6"
+            if [ -n "$REGIONS_1_6" ]; then echo "  - Regions: $REGIONS_1_6"; fi
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > /tmp/hourly-status.md
+
+          if [ -z "$status_issue" ]; then
+            gh issue create \
+              --title "OCI A1 Hourly Capacity Status" \
+              --body-file /tmp/hourly-status.md \
+              --assignee imAIguru
+          else
+            gh issue comment "$status_issue" --body-file /tmp/hourly-status.md
           fi
